@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест по ПРO — Los-Santos News</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(0deg, #d1d1d1 0%, #ffffff 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .quiz-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            width: 600px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            margin: 20px;
+        }
+
+        .question-box {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+        .question-box.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .options {
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .options label {
+            display: block;
+            margin: 10px 0;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        .options label:hover {
+            border-color: #4CAF50;
+            background-color: #f9fff9;
+        }
+        .options label.selected {
+            background-color: #f0f8ff;
+            border-color: #2196F3;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 35px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .submit-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .submit-btn.disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status-box {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .status-pass {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 2px solid #4CAF50;
+        }
+        .status-fail {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 2px solid #f44336;
+        }
+
+        .result-box {
+             margin-top: 20px;
+             padding-top: 20px;
+             border-top: 2px solid #eee;
+             display: none;
+         }
+         .result-box.show {
+             display: block;
+         }
+         
+         #summary-list {
+             text-align: left;
+             list-style: none;
+             padding: 0;
+             max-height: 400px;
+             overflow-y: auto;
+         }
+         .summary-item {
+             margin-bottom: 15px;
+             padding: 10px;
+             border-radius: 8px;
+             background: #fff5f5;
+             font-size: 13px;
+             border-left: 5px solid #f44336;
+         }
+
+         .emotion-block img { margin-bottom: 15px; border-radius: 10px; }
+
+         input[type="radio"] {
+             display: none;
+         }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div id="quiz"></div>
+    
+    <div class="result-box" id="result">
+        <div id="status-notification" class="status-box"></div>
+        
+        <p>Ваш результат: <span id="score-percent" style="font-weight:bold;"></span>% (<span id="score-count"></span> из <span id="total-count"></span>)</p>
+        
+        <div class="emotion-block" id="emotion-block"></div>
+        
+        <h3 id="review-title">Ваши ошибки (правильные ответы скрыты):</h3>
+        <ul id="summary-list"></ul>
+        
+        <button onclick="location.reload()" style="background:#2196F3; color:white;">Пройти еще раз</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "Расшифруйте аббревиатуру ПРО:", o: ["Правила работы организации", "Правила редактирования объявлений", "Правильное рассмотрение объявлений", "Положения работы с объявлениями"], a: 1 },
+        { q: "Обязанности сотрудника организации Los-Santos News?", o: ["Гулять и фармить вирты!", "Редактирование, отклонение нарушений, соблюдение субординации, проведение эфиров", "Играть в казино, игнорировать сообщения старшего состава", "Зашёл, отредактировал пару объявлений и пропал"], a: 1 },
+        { q: "Рабочий график организации Los-Santos News?", o: ["8:00 — 20:00 по МСК (обед 12:00-13:00)", "19:00 — 21:00 по МСК без выходных", "Свободный график", "15:30 — 20:00 по МСК"], a: 2 },
+        { q: "Где можно ходить в рабочей форме?", o: ["Только в здании организации Los-Santos News", "Свободно в любой точке карты", "Свободно, за исключением ц/р и казино"], a: 2 },
+        { q: "Что означает [FT], [TT], [ST]?", o: ["Классы домов", "ST — сток тюнинг, FT — фулл тюнинг, TT- на половину фулловый", "Города", "Классы автомобилей"], a: 1 },
+        { q: "Редактирование: «пр буллет ст 8кк»", o: ['Продам т/с марки "Bullet"[ST] цена: 8.000.000$.', 'Продам т/с марки "Bullet"[ST]. Цена: 8.000.000$.', 'Продам а/м марки "Bullet"[ST]. Цена: 8.000.000$.', 'Продам т/с марки "Буллет"[FT]. Цена: 8.000.000$.', 'Продам т/с марки "Bullet"(ST). Цена: 8.000.000$.'], a: 1 },
+        { q: "Редактирование: «Обмен бананомобиль на БМВ г82 дп 6392888$»", o: ['Обменяю т/с марки "BANANA" на т/с марки "BMW m4g82". Доплата: 6.892.888$.', 'Обменяю Бананомобиль на BMW m4g82. Доплата: 6.392.888$.', 'Обменяю т/с марки "BANANA" на т/с марки "BMW m4g82". Доплата: 6.392.888$.', 'Обменяю т/с марки "Бананомобтль" на т/с марки "BMW m4g82". Доплата: 6.392.888$.'], a: 2 },
+        { q: "Редактирование: «Обмен фуражка адм на ворона с яйца»", o: ['Обменяю а/т "Фуражка администратора" на а/т "Ворон с яйца". Доплата: договорная.', 'Обменяю Фуражку администратора на Ворона с яйца. Доплата: Договорная.', 'Обменяю а/т "Фуражка администратора" на а/т "Ворон с яйца".', 'Отклоним, не указана доплата.'], a: 0 },
+        { q: "Редактирование: «Куплю мавер»", o: ['Куплю т/с модели "Maverick".', 'Куплю т/с марки "Maverick". Цена: договорная.', 'Куплю т/с модели "Maverick". Бюджет: свободный.', 'Куплю в/с марки "Maverick". Бюджет: свободный.', 'Отклоним, так как не указан бюджет.'], a: 2 },
+        { q: "Редактирование: «Продам нрг»", o: ['Продам т/с марки "NRG-500". Цена: договорная.', 'Продам м/ц марки "NRG-500". Цена: договорная.', 'Продам т/с модели "NRG-500" Цена: договная.', 'Отклоним, не указана цена.'], a: 1 },
+        { q: "Редактирование: «Продам автомобильный номер С111МИ»", o: ['Продам н/з "С111МИ". Цена: договорная.', 'Продам автомольный номер "С111МИ". Цена: договорная.', 'Продам номер "С111МИ".', 'Отклоним, так как авто-номера продать невозможно.'], a: 0 },
+        { q: "Редактирование: «Куплю любой автомобиль»", o: ["Куплю автомобиль любой марки.", "Куплю т/с любой марки. Бюджет свободный.", "Куплю т/с любой марки. Бюджет: свободный.", "Куплю т/с любой марки. Цена: договорная.", "Отклоним, так как не указана марка автомобиля."], a: 2 },
+        { q: "Редактирование: «Куплю 20к доната 140кк»", o: ["Куплю д/в в количестве 20.000 единиц. Бюджет: 140.000.000$.", "Куплю донат в количестве 20.000. Бюджет: 140.000.000$.", "Куплю донат валюту в колличестве 20.000 единиц за 140.000.000$.", "Отклоним (донат нельзя редактировать)"], a: 3 },
+        { q: "Редактирование: «Пр дом в ЛС 7кк»", o: ["Продам дом в Los-Santos. Цена: 7.000.000$.", "Продам дом в Лос-Сантосе. Цена: 7.000.000$.", "Продается дом в Лос-Сантосе. Цена: 7кк.", "Отклонить, так как не указан класс дома."], a: 3 },
+        { q: "Редактирование: «Куплю дом высокого класса в лв»", o: ['Куплю дом высокого класса в Las-Venturas. Бюджет: свободный.', 'Куплю дом класса "Высокий" в Лас-Вентурас.', 'Куплю дом высокого класса в Лас-Вентурас.', 'Отклонить, так как не указан бюджет.'], a: 0 },
+        { q: "Редактирование: «Продам скин Техно Санта»", o: ['Продам о/п "Техно Санта". Цена: договорная.', 'Продам одежду пошива "Техно Санта". Цена: договорная.', 'Продам скин "Техно Санта". Цена: договная.', 'Продам скин "Техно Санта".', 'Отклонить, так как не указана цена.'], a: 1 },
+        { q: "Редактирование: «Куплю о/п Джонни Сильверхенд»", o: ["Куплю одежду пошива \"Джонни Сильверхенд\".", 'Куплю о/а "Джонни Сильверхенд". Бюджет: свободный.', 'Куплю одежду пошива "Джонни Сильверхенд". Бюджет: свободный.', "Отклоним, так как не указан бюджет."], a: 2 },
+        { q: "Редактирование: «Куплю марихуану»", o: ['Куплю чай в неограниченном кол-во грамм. Бюджет: свободный.', 'Куплю р/т "Марихуана" в неограниченном кол-во грамм. Бюджет: свободный.', 'Куплю р/т "Марихуана". Бюджет: свободный.', 'Отклоним, так как наркотики рекламировать запрещено.'], a: 0 },
+        { q: "Редактирование: «Куплю дрова 15к ед.»", o: ['Куплю р/т "Дрова". Бюджет: 15.000$.', 'Куплю ресурс типа "Дрова". Бюджет за единицу: 15.000$.', 'Куплю р/т "Дрова" бюджет за единицу: 15.000$.', 'Куплю р/т "Дрова" в неограниченном кол-ве единиц. Бюджет за единицу: 15.000$.'], a: 3 },
+        { q: "Редактирование: «Продам купон работяги 16 штук 650к»", o: ['Продам р/т "Купон работяги". Бюджет: 650.000$.', 'Продам к/т "Работяги" в кол-ве 16 единиц. Цена за единицу: 650.000$.', 'Продам купон "Работяга". Цена: 650.000$.', 'Продам купоны работяги в кол-ве 16 единиц. Цена за единицу: 650.000$.', 'Отклонить, купоны нельзя редактировать.'], a: 1 },
+        { q: "Редактирование: «Куплю бизнес любой»", o: ["Куплю любое предприятие. Бюджет: свободный.", "Куплю предприятие любого типа в любой точке штата. Бюджет: свободный.", "Куплю предприятие любого типа. Бюджет: свободный.", "Отклонить, так как не указан тип бизнеса и местоположение."], a: 1 },
+        { q: "Редактирование: «Продам 24/7 за 10кк»", o: ['Продам п/т "24/7". Цена: 10.000.000$.', 'Продам п/т "24/7".', 'продам п/т "24/7" в любой точке штата. Цена: 10.000.000$.', 'Отклонить, так как не указан номер бизнеса и его местоположение.'], a: 3 },
+        { q: "Редактирование: «Продам инфернус фт за 1$»", o: ['Продам т/с марки "Infernus"[FT]. Цена: 1$.', 'Продам т/с марки "Infernus"[FT] цена: 1$.', 'Продам т/с марки "Infernus"(FT). Цена: 1$.', 'Отклонить (1$ — нереалистичная цена)'], a: 3 },
+        { q: "Редактирование: «Набор Тихуана»", o: ["Идёт набор в ботанический сад Tijuana Cartel.", "Идёт набор в ботанический сад Tijuana Cartel. Мы в навигаторе: /gps > 6 > 11.", "В данный момент происходит набор в Tijuana Cartel. Мы в навигаторе: /gps > 6 > 11.", "Набор Tijuana Cartel. Мы в навигаторе: /gps > 6 > 11."], a: 1 },
+        { q: "Разрешено ли: «СМИ не курит, СМИ не пьёт, СМИ ваших объявлений ждёт!»", o: ["Разрешено", "Запрещено"], a: 0 },
+        { q: "Редактирование: «Набор Грув стрит»", o: ["В данный момент проходи набор в банду Grove Street.", "Сейчас проходит набор единомышленников Grove Street. Мы в навигаторе: /gps > 6 > 4.", "Набор Грув стрит! Всех ждём!"], a: 1 },
+        { q: "Редактирование: «Набор в фаму Galactic Empire»", o: ['Семья "Galactic Empire" ищет дальних родственников. Просьба: связаться.', 'Набор в семью "Galactic Empire". Просьба: связаться.', 'Семья "Galactic" ищет дальних родственников. Просьба: связаться.'], a: 0 },
+        { q: "Редактирование: «Ищу фаму»", o: ["Ищу дальних родственников. Просьба: связаться.", "Выступлю в семью.", "Ищу дальних родственников.", "Отклонить."], a: 0 },
+        { q: "Редактирование: «Продам фаму фулл прокачка»", o: ["Продам семью с полной прокачкой. Цена: договорная.", 'Продам футболку с надписью "Семья". Цена: договорная.', "Продам семью. Цена: договорная.", "Отклонить, запрещено редактировать."], a: 1 },
+        { q: "Редактирование: «24/7 45 реклама»", o: ['В "24/7"[45] самый дешёвый товар! Ждём всех!', 'В 24/7 номер 45 ликвидация товара! Спешите!', 'В "24/7" id45 скидки на товар! Поторопись!', 'Только сегодня распродажа в магазине 24/7[45]!'], a: 0 },
+        { q: "Редактирование: «Куплю Биткойны, 6к за шт.»", o: ['Куплю к/в "Bitcoin" в неограниченном кол-ве единиц. Бюджет: 6.000$.', 'Куплю "Биткоин". Бюджет за единицу: 6.000$.', 'Куплю к/в "Bitcoin" в неограниченном кол-ве единиц. Бюджет за единицу: 6.000$.'], a: 2 },
+        { q: "Редактирование: «Куплю сим-карту 500к»", o: ["Куплю сим-карту с красивым номером. Бюджет: 500.000$.", "Куплю сим-карту. Бюджет: 500.000$.", "Куплю сим-карту.", "Отклонить, запрещено редактировать."], a: 0 },
+        { q: "Наркотики: Марихуана и кокс — что из них чай, а что сахар?", o: ["Кокс — чай, марихуана — сахар.", "Кокс — сахар, марихуана — чай."], a: 1 }
+    ];
+
+    let currentQuestion = 0, score = 0, userAnswers = [], selectedIdx = null;
+
+    const quizEl = document.getElementById("quiz"),
+          resultEl = document.getElementById("result"),
+          statusNotifEl = document.getElementById("status-notification"),
+          percentEl = document.getElementById("score-percent"),
+          countEl = document.getElementById("score-count"),
+          totalEl = document.getElementById("total-count"),
+          summaryEl = document.getElementById("summary-list"),
+          emotionEl = document.getElementById("emotion-block");
+
+    function renderQuestion() {
+        quizEl.innerHTML = "";
+        const data = questions[currentQuestion];
+        const box = document.createElement("div");
+        box.className = "question-box active";
+        
+        const optionsHtml = data.o.map((opt, i) => `
+            <label data-idx="${i}">
+                <input type="radio" name="answer" value="${i}"> ${opt}
+            </label>
+        `).join("");
+
+        box.innerHTML = `
+            <h2 style="color: #2196F3;">Вопрос ${currentQuestion + 1} из ${questions.length}</h2>
+            <p style="font-size: 1.1em; font-weight: 600; color: #333; margin-bottom: 20px;">${data.q}</p>
+            <div class="options">${optionsHtml}</div>
+            <button class="submit-btn disabled" id="submit-btn" disabled>Ответить</button>
+        `;
+        quizEl.appendChild(box);
+
+        const labels = box.querySelectorAll('.options label');
+        const btn = box.querySelector("#submit-btn");
+
+        labels.forEach(label => {
+            label.onclick = () => {
+                labels.forEach(l => l.classList.remove('selected'));
+                label.classList.add('selected');
+                selectedIdx = parseInt(label.dataset.idx);
+                btn.classList.remove("disabled");
+                btn.disabled = false;
+            };
+        });
+
+        btn.onclick = () => {
+            userAnswers.push(selectedIdx);
+            if (selectedIdx === questions[currentQuestion].a) score++;
+            currentQuestion++;
+            selectedIdx = null;
+            if (currentQuestion < questions.length) renderQuestion();
+            else showResults();
+        };
+    }
+
+    function showResults() {
+        quizEl.style.display = "none";
+        resultEl.classList.add("show");
+        const percent = Math.round((score / questions.length) * 100);
+        
+        percentEl.textContent = percent;
+        countEl.textContent = score;
+        totalEl.textContent = questions.length;
+
+        let imgName = "";
+        
+        // Порог успеха изменен на 80%
+        if (percent >= 80) {
+            statusNotifEl.textContent = "✅ ТЕСТ ПРОЙДЕН! Вы допущены к работе.";
+            statusNotifEl.className = "status-box status-pass";
+            imgName = "True.gif";
+        } else {
+            statusNotifEl.textContent = "❌ ТЕСТ НЕ ПРОЙДЕН! Повторите правила.";
+            statusNotifEl.className = "status-box status-fail";
+            imgName = "False.gif";
+        }
+
+        emotionEl.innerHTML = `<img src="img/${imgName}" alt="Результат" style="max-width:250px;">`;
+
+        let hasErrors = false;
+        questions.forEach((q, i) => {
+            const isCorrect = userAnswers[i] === q.a;
+            if (!isCorrect) {
+                hasErrors = true;
+                const li = document.createElement("li");
+                li.className = `summary-item`;
+                li.innerHTML = `
+                    <strong>Вопрос: ${q.q}</strong><br>
+                    <span style="color:#777">Ваш неверный ответ:</span> <span style="color:#c62828">${q.o[userAnswers[i]]}</span>
+                `;
+                summaryEl.appendChild(li);
+            }
+        });
+
+        if (!hasErrors) {
+            document.getElementById("review-title").textContent = "Идеальный результат! Ошибок нет ✨";
+        }
+    }
+
+    renderQuestion();
+</script>
+
+</body>
+</html>
